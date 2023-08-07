@@ -1,3 +1,5 @@
+# FITTING WITH BAND DETECTION LIMITS
+
 The versions of `likelihood.py` and `starmodel.py` here are meant to replace those in the isochrones package with minimal changes, so that normal use is not changed. The purpose of these changes is to allow the user to account for the sensitivity of filters when passing band magnitudes as initial values in a `StarModel` for pymultinest fitting. For example, 
 
 ```
