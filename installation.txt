@@ -1,0 +1,48 @@
+Installing isochrones python package for Linux (done originally in Windows Subsystem for Linux - Ubuntu), original instructions here (https://isochrones.readthedocs.io/en/latest/install.html):
+
+Get C, C+, Fortran compiler:
+
+$ sudo apt-get install build-essential
+
+Create conda environment in python 3.8:
+$ conda create -n iso_env python=3.8
+$ conda activate iso_env
+
+Install numba 0.43, higher versions cause errors with certain isochrones functions. Should also install correct version of numpy, if not can include that first:
+$ conda install numpy=
+$ conda install numba=0.43
+
+Install other necessary packages, default versions should be okay:
+$ conda install nose
+$ conda install pytables
+$ conda install pandas
+
+Install isochrones package:
+$ pip install isochrones
+
+Install PyMultiNest:
+$ conda install cmake
+$ git clone https://github.com/johannesBuchner/MultiNest
+$ cd MultiNest/build
+$ cmake -DCMAKE_INSTALL_PREFIX=~ ..
+$ make
+$ make install
+
+Add home directory to library path, or add this line into .bash_profile to run on startup:
+$ export LD_LIBRARY_PATH=$HOME/lib
+
+Install pymultinest:
+$ pip install pymultinest
+
+Other recommended packages to install:
+$ conda install holoviews
+$ conda install hvplot
+$ conda install matplotlib
+$ conda install ipykernel
+
+Test in python:
+from isochrones.mist import MISTEvolutionTrackGrid, MISTIsochroneGrid
+track_grid = MISTEvolutionTrackGrid()
+track_grid.interp([-0.12, 1.01, 353.1], ['mass', 'radius', 'logg', 'Teff'])
+
+Try for multiple values, both float and integer. If no warnings/errors returned by importing package & running .interp, then should be installed properly. 
