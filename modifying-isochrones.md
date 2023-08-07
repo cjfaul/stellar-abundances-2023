@@ -16,3 +16,7 @@ INCLUDE ONE-SIDED GAUSSIAN HERE PLACEHOLDER
 ```
 
 It is also necessary to have somewhere to provide the set of these detection limits for specific filters. Because of the use of `numba` in `likelihood.py`, we instead create a dictionary called PLACEHOLDER at the top of `starmodel.py` to allow users to specify any detection limit for any filter used by isochrones. The other modifications to these two files are to implement these detection limits into the `star_lnlike` function, located in `likelihood.py` and called in `starmodel.py` when fitting. 
+
+# ADDING BANDS TO BOLOMETRIC CORRECTION GRID
+
+When creating a bolometric correction grid between different bands with `isochrones`, it is fairly straightforward to add any set of filters/bands from MIST (http://waps.cfa.harvard.edu/MIST/model_grids.html#bolometric). It can be done by modifying `../isochrones/mist/bc.py` and adding elements to the `phot_bands` dictionary. First, identify the table to add from MIST and copy the link. It should be of the form http://waps.cfa.harvard.edu/MIST/BC_tables/{NAME}.txz. Download the table and open one of the files to access the column names, which correspond to the filters/bands in the table. Add a list to the dictionary called `NAME` from the link and let the elements of this list be the names of the bands from the columns of the downloaded tables. Then, the first time one of these columns is called when creating a bolometric correction grid, the table will be downloaded to the `isochrones` package directory.
