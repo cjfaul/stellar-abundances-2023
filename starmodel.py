@@ -60,6 +60,9 @@ def _parse_config_value(v):
     return val
 
 
+detection_limits = {'WFC3_UVIS_F336W': 26.5}
+
+
 class StarModel(object):
     """
 
@@ -219,7 +222,7 @@ class StarModel(object):
     def _parse_band(cls, kw):
         """Returns photometric band from inifile keyword
         """
-        m = re.search(r"[a-zA-Z0-9_]+", kw)
+        m = re.search(r"([a-zA-Z0-9]+)(_\d+)?", kw)
         if m:
             if m.group(1) in cls._not_a_band:
                 return None
@@ -1464,17 +1467,6 @@ class BasicStarModel(StarModel):
 
         if max_distance is not None:
             self.set_bounds(distance=(0, max_distance))
-        else:
-            if "parallax" in kwargs:
-                value, unc = kwargs["parallax"]  # plax in mas
-                if value > 0:
-                    max_distance = 1.0 / value * 2000  # distance in pc
-                    self.set_bounds(distance=(0, max_distance))
-                elif value < 0:
-                    max_distance = 1.0 / np.abs(unc) * 2000  # Does this make any sense?
-                    self.set_bounds(distance=(0, max_distance))
-                else:  # Parallax is nan
-                    pass
 
         if halo_fraction is not None:
             self._priors["feh"] = FehPrior(halo_fraction=halo_fraction)
@@ -1575,9 +1567,17 @@ class BasicStarModel(StarModel):
         if self.bands:
             mag_vals, mag_uncs = zip(*[self.kwargs[b] for b in self.bands])
             i_mags = [self.ic.bc_grid.interp.column_index[b] for b in self.bands]
+            mag_limits = []
+            for b in self.bands:
+                if b in detection_limits:
+                    detection_limit = detection_limits[b]
+                else:
+                    detection_limit = np.inf
+                mag_limits.append(detection_limit)
         else:
             mag_vals, mag_uncs = np.array([], dtype=float), np.array([], dtype=float)
             i_mags = np.array([], dtype=int)
+            mag_limits = np.array([], dtype=int)
         lnlike = star_lnlike(
             pars,
             self.ic.param_index_order,
@@ -1585,6 +1585,7 @@ class BasicStarModel(StarModel):
             spec_uncs,
             mag_vals,
             mag_uncs,
+            mag_limits,
             i_mags,
             self.ic.model_grid.interp.grid,
             self.ic.model_grid.interp.column_index["Teff"],
@@ -2046,9 +2047,17 @@ class IsoTrackModel(BasicStarModel):
         if self.bands:
             mag_vals, mag_uncs = zip(*[self.kwargs[b] for b in self.bands])
             i_mags = [self.ic.bc_grid.interp.column_index[b] for b in self.bands]
+            mag_limits = []
+            for b in self.bands:
+                if b in detection_limits:
+                    detection_limit = detection_limits[b]
+                else:
+                    detection_limit = np.inf
+                mag_limits.append(detection_limit)
         else:
             mag_vals, mag_uncs = np.array([], dtype=float), np.array([], dtype=float)
             i_mags = np.array([], dtype=int)
+            mag_limits = np.array([], dtype=int)
 
         iso_lnlike = star_lnlike(
             iso_pars,
@@ -2057,6 +2066,7 @@ class IsoTrackModel(BasicStarModel):
             spec_uncs,
             mag_vals,
             mag_uncs,
+            mag_limits,
             i_mags,
             self.iso.model_grid.interp.grid,
             self.iso.model_grid.interp.column_index["Teff"],
@@ -2075,6 +2085,7 @@ class IsoTrackModel(BasicStarModel):
             spec_uncs,
             mag_vals,
             mag_uncs,
+            mag_limits,
             i_mags,
             self.track.model_grid.interp.grid,
             self.track.model_grid.interp.column_index["Teff"],
