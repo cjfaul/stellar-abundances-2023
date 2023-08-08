@@ -2,6 +2,7 @@ from isochrones.mags import interp_mag
 from .utils import fast_addmags
 import numba as nb
 from math import pi, log, sqrt
+import numpy as np
 
 
 LOG_ONE_OVER_ROOT_2PI = log(1.0 / sqrt(2 * pi))
@@ -12,6 +13,16 @@ def gauss_lnprob(val, unc, model_val):
     resid = val - model_val
     return LOG_ONE_OVER_ROOT_2PI + log(unc) - 0.5 * resid * resid / (unc * unc)
 
+#'''
+@nb.jit(nopython=True)
+def one_sided_gauss_lnprob(val, unc, model_val):
+    resid = val - model_val
+    if resid >= 0:
+        return gauss_lnprob(val, unc, model_val)
+    else:
+        return gauss_lnprob(val, unc, val)
+#'''
+        
 
 @nb.jit(nopython=True)
 def star_lnlike(
@@ -21,6 +32,7 @@ def star_lnlike(
     spec_uncs,
     mag_vals,
     mag_uncs,
+    mag_limits,
     i_mags,
     model_grid,
     i_Teff,
@@ -142,6 +154,10 @@ def star_lnlike(
     for i in range(len(mag_vals)):
         val = mag_vals[i]
         unc = mag_uncs[i]
-        lnlike += gauss_lnprob(val, unc, mags[i])
+        limit = mag_limits[i]
+        if val > limit:
+            lnlike += one_sided_gauss_lnprob(limit, unc, mags[i])
+        else:
+            lnlike += gauss_lnprob(val, unc, mags[i])
 
     return lnlike
