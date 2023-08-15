@@ -60,9 +60,6 @@ def _parse_config_value(v):
     return val
 
 
-detection_limits = {'WFC3_UVIS_F336W': 26.5}
-
-
 class StarModel(object):
     """
 
@@ -1428,9 +1425,16 @@ class BasicStarModel(StarModel):
         self.kwargs = {}
         for k, v in kwargs.items():
             try:
-                val, unc = v
-                if not (np.isnan(val) or np.isnan(unc)):
-                    self.kwargs[k] = (np.float64(val), np.float64(unc))
+                if len(v) == 2:
+                    val, unc = v
+                    if not (np.isnan(val) or np.isnan(unc)):
+                        self.kwargs[k] = (np.float64(val), np.float64(unc), True)
+                elif len(v) == 3:
+                    val, unc, exists = v
+                    if not (np.isnan(val) or np.isnan(unc)):
+                        self.kwargs[k] = (np.float64(val), np.float64(unc), exists)
+                else:
+                    raise Exception('Improper band mag input')
             except TypeError:
                 logger.warning("kwarg {}={} ignored!".format(k, v))
 
@@ -1565,19 +1569,20 @@ class BasicStarModel(StarModel):
 
         spec_vals, spec_uncs = zip(*[prop for prop in self.spec_props])
         if self.bands:
-            mag_vals, mag_uncs = zip(*[self.kwargs[b] for b in self.bands])
-            i_mags = [self.ic.bc_grid.interp.column_index[b] for b in self.bands]
-            mag_limits = []
-            for b in self.bands:
-                if b in detection_limits:
-                    detection_limit = detection_limits[b]
+            number_of_bands = len(self.bands)
+            mag_vals, mag_uncs, mag_exists = number_of_bands*[0], number_of_bands*[0], number_of_bands*[0]
+            i_mags = [self.ic.bc_grid.interp.column_index[b] for b in self.bands]  
+            for i,mag_set in enumerate([self.kwargs[b] for b in self.bands]):
+                if len(mag_set) == 2:
+                    mag_vals[i], mag_uncs[i] = mag_set
+                    mag_exists[i] = True
+                elif len(mag_set) == 3:
+                    mag_vals[i], mag_uncs[i], mag_exists[i] = mag_set
                 else:
-                    detection_limit = np.inf
-                mag_limits.append(detection_limit)
+                    raise Exception('Improper band mag input')
         else:
-            mag_vals, mag_uncs = np.array([], dtype=float), np.array([], dtype=float)
+            mag_vals, mag_uncs, mag_exists = np.array([], dtype=float), np.array([], dtype=float), np.array([], dtype=int)
             i_mags = np.array([], dtype=int)
-            mag_limits = np.array([], dtype=int)
         lnlike = star_lnlike(
             pars,
             self.ic.param_index_order,
@@ -1585,7 +1590,7 @@ class BasicStarModel(StarModel):
             spec_uncs,
             mag_vals,
             mag_uncs,
-            mag_limits,
+            mag_exists,
             i_mags,
             self.ic.model_grid.interp.grid,
             self.ic.model_grid.interp.column_index["Teff"],
@@ -2045,19 +2050,20 @@ class IsoTrackModel(BasicStarModel):
 
         spec_vals, spec_uncs = zip(*[prop for prop in self.spec_props])
         if self.bands:
-            mag_vals, mag_uncs = zip(*[self.kwargs[b] for b in self.bands])
-            i_mags = [self.ic.bc_grid.interp.column_index[b] for b in self.bands]
-            mag_limits = []
-            for b in self.bands:
-                if b in detection_limits:
-                    detection_limit = detection_limits[b]
+            number_of_bands = len(self.bands)
+            mag_vals, mag_uncs, mag_exists = number_of_bands*[0], number_of_bands*[0], number_of_bands*[0]
+            i_mags = [self.ic.bc_grid.interp.column_index[b] for b in self.bands]  
+            for i,mag_set in enumerate([self.kwargs[b] for b in self.bands]):
+                if len(mag_set) == 2:
+                    mag_vals[i], mag_uncs[i] = mag_set
+                    mag_exists[i] = True
+                elif len(mag_set) == 3:
+                    mag_vals[i], mag_uncs[i], mag_exists[i] = mag_set
                 else:
-                    detection_limit = np.inf
-                mag_limits.append(detection_limit)
+                    raise Exception('Improper band mag input')
         else:
-            mag_vals, mag_uncs = np.array([], dtype=float), np.array([], dtype=float)
+            mag_vals, mag_uncs, mag_exists = np.array([], dtype=float), np.array([], dtype=float), np.array([], dtype=int)
             i_mags = np.array([], dtype=int)
-            mag_limits = np.array([], dtype=int)
 
         iso_lnlike = star_lnlike(
             iso_pars,
@@ -2066,7 +2072,7 @@ class IsoTrackModel(BasicStarModel):
             spec_uncs,
             mag_vals,
             mag_uncs,
-            mag_limits,
+            mag_exists,
             i_mags,
             self.iso.model_grid.interp.grid,
             self.iso.model_grid.interp.column_index["Teff"],
@@ -2085,7 +2091,7 @@ class IsoTrackModel(BasicStarModel):
             spec_uncs,
             mag_vals,
             mag_uncs,
-            mag_limits,
+            mag_exists,
             i_mags,
             self.track.model_grid.interp.grid,
             self.track.model_grid.interp.column_index["Teff"],
