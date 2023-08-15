@@ -9,13 +9,27 @@ model = SingleStarModel(mist, **init_dict) # sets true values to those in init_d
 model.fit()
 ```
 
-The likelihood of a live point is default calculated on a Gaussian curve, found in `guass_lnprob` in `likelihood.py`. Say the sensitivity of this filter (WFC3_HST_F336W) is 27, as in any magnitude greater than 27 is unreliable. We would then rather use a likelihood that is asymmetric, where live points with a value less than the cutoff sensitivity are treated normally and live points with a value greater than the cutoff sensitivity are assigned a likelihood equal to that of the cutoff point. This version of `likelihood.py` has a one-sided Gaussian likelihood function included for this purpose:
+The likelihood of a live point is default calculated on a Gaussian curve, found in `guass_lnprob` in `likelihood.py`. Say the sensitivity of this filter (WFC3_HST_F336W) is 27, i.e. measurements above 27 would be unlikely to be detected. We would then rather use a likelihood that is asymmetric, where live points with a value less than the cutoff sensitivity are treated normally and live points with a value greater than the cutoff sensitivity are assigned a likelihood equal to that of the cutoff point. This version of `likelihood.py` has a one-sided Gaussian likelihood function included for this purpose:
 
 ```
-INCLUDE ONE-SIDED GAUSSIAN HERE PLACEHOLDER
+def gauss_lnprob(val, unc, model_val):
+    resid = val - model_val
+    return LOG_ONE_OVER_ROOT_2PI + log(unc) - 0.5 * resid * resid / (unc * unc)
+
+def one_sided_gauss_lnprob(limit, unc, model_val):
+    resid = limit - model_val
+    if resid >= 0:
+        return gauss_lnprob(limit, unc, model_val)
+    else:
+        return gauss_lnprob(model_val, unc, model_val)```
+
+The user can pass detection limits per filter when creating the `StarModel` instead of an initial value for magnitude. If the initial value is instead passed as
+
+```
+init_dict = {WFC3_HST_F336W_mag: (29, 2, False)} # (upper limit, error, measurement exists)
 ```
 
-It is also necessary to have somewhere to provide the set of these detection limits for specific filters. Because of the use of `numba` in `likelihood.py`, we instead create a dictionary called PLACEHOLDER at the top of `starmodel.py` to allow users to specify any detection limit for any filter used by isochrones. The other modifications to these two files are to implement these detection limits into the `star_lnlike` function, located in `likelihood.py` and called in `starmodel.py` when fitting. 
+then 29 will be treated as the upper limit with an uncertainty of 2, with the `False` representing this is not an existing measurement. 
 
 # ADDING BANDS TO BOLOMETRIC CORRECTION GRID
 
