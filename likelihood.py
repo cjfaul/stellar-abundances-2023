@@ -15,12 +15,12 @@ def gauss_lnprob(val, unc, model_val):
 
 #'''
 @nb.jit(nopython=True)
-def one_sided_gauss_lnprob(val, unc, model_val):
-    resid = val - model_val
+def one_sided_gauss_lnprob(limit, unc, model_val):
+    resid = limit - model_val
     if resid >= 0:
-        return gauss_lnprob(val, unc, model_val)
+        return gauss_lnprob(limit, unc, model_val)
     else:
-        return gauss_lnprob(val, unc, val)
+        return gauss_lnprob(model_val, unc, model_val)
 #'''
         
 
@@ -32,7 +32,7 @@ def star_lnlike(
     spec_uncs,
     mag_vals,
     mag_uncs,
-    mag_limits,
+    mag_exists,
     i_mags,
     model_grid,
     i_Teff,
@@ -154,10 +154,9 @@ def star_lnlike(
     for i in range(len(mag_vals)):
         val = mag_vals[i]
         unc = mag_uncs[i]
-        limit = mag_limits[i]
-        if val > limit:
-            lnlike += one_sided_gauss_lnprob(limit, unc, mags[i])
-        else:
+        if mag_exists[i]:
             lnlike += gauss_lnprob(val, unc, mags[i])
+        else:
+            lnlike += one_sided_gauss_lnprob(val, unc, mags[i])
 
     return lnlike
