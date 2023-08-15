@@ -21,7 +21,8 @@ def one_sided_gauss_lnprob(limit, unc, model_val):
     if resid >= 0:
         return gauss_lnprob(limit, unc, model_val)
     else:
-        return gauss_lnprob(model_val, unc, model_val)```
+        return gauss_lnprob(model_val, unc, model_val)
+```
 
 The user can pass detection limits per filter when creating the `StarModel` instead of an initial value for magnitude. If the initial value is instead passed as
 
